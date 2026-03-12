@@ -1,0 +1,10 @@
+data_lake_bucket: crypto-lake
+
+bronze_prefix: bronze/coins
+silver_prefix: silver/coins
+gold_prefix: gold/coins
+
+dataset_name: coins
+schema_version: v1
+
+postgres_conn_id: postgres_warehouse
