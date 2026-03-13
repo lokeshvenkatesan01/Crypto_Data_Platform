@@ -13,6 +13,8 @@ def build_gold_coin_daily_minio(**context):
     gold_key = f"gold/coins_daily/dt={execution_date}/coin_daily_metrics.parquet"
 
     s3 = S3Hook(aws_conn_id="minio_s3")
+    
+    
 
     # 1️⃣ Read Silver Parquet
     silver_obj = s3.get_key(silver_key, bucket_name=bucket)

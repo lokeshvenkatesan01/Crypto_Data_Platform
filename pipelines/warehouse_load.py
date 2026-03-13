@@ -4,6 +4,7 @@ def load_gold_to_postgres(**context):
     import pandas as pd
     from psycopg2.extras import execute_values
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+    from utils.db_utils import get_pg_conn
 
     logging.info("Loading GOLD dataset into Postgres")
 
@@ -36,6 +37,8 @@ def load_gold_to_postgres(**context):
     # 3️⃣ Insert / upsert into Postgres
     conn = get_pg_conn()
     cur = conn.cursor()
+    
+    logger.info(f"Inserting {len(records)} records into gold table")
 
     sql = """
         INSERT INTO gold_coin_daily_metrics
