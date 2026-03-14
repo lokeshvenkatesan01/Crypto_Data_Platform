@@ -1,8 +1,9 @@
-import logging
 import psycopg2
+from psycopg2.extras import execute_values
 from airflow.hooks.base import BaseHook
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def get_pg_conn():
@@ -30,7 +31,7 @@ def execute_query(sql, params=None):
     cur = conn.cursor()
 
     try:
-        logger.info("Executing query")
+        logger.info(f"Executing query: {sql[:80]}")
 
         cur.execute(sql, params)
 
@@ -95,3 +96,38 @@ def create_tables():
     conn.close()
 
     logger.info("Tables verified")        
+
+
+def bulk_insert(table, columns, records):
+    """
+    Efficient bulk insert into PostgreSQL
+    """
+
+    conn = get_pg_conn()
+    cur = conn.cursor()
+
+    cols = ",".join(columns)
+
+    query = f"""
+        INSERT INTO {table} ({cols})
+        VALUES %s
+    """
+
+    try:
+
+        execute_values(cur, query, records)
+
+        conn.commit()
+
+        logger.info(f"Inserted {len(records)} rows into {table}")
+
+    except Exception as e:
+
+        logger.error(f"Bulk insert failed: {e}")
+        conn.rollback()
+        raise
+
+    finally:
+
+        cur.close()
+        conn.close()    
