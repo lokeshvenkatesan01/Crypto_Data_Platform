@@ -1,5 +1,6 @@
 from utils.config_loader import load_config
 from utils.logger import get_logger
+from datetime import datetime, timezone
 from utils.validation_utils import (
     validate_not_empty,
     validate_no_nulls,
@@ -19,8 +20,9 @@ def transform_bronze_to_silver(**context):
     
     from datetime import datetime
 
+    execution_date = context["ds"]    
     dt = datetime.strptime(execution_date, "%Y-%m-%d")
-
+    
     year = dt.strftime("%Y")
     month = dt.strftime("%m")
     day = dt.strftime("%d")
@@ -44,6 +46,13 @@ def transform_bronze_to_silver(**context):
     raw_json = s3.read_key(key=bronze_key, bucket_name=bucket)
     df = pd.read_json(io.StringIO(raw_json))
     
+    # Defensive checks
+    if df.empty:
+        raise ValueError("Silver transformation received empty dataset")
+
+    if "price_usd" not in df.columns:
+        raise ValueError("Missing required column: price_usd")
+        
     validate_not_empty(df, "silver_coins")
 
     validate_no_nulls(df, ["coin_id", "price_usd", "market_cap"])

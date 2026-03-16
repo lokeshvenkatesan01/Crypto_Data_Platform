@@ -5,6 +5,7 @@ def build_gold_coin_daily_minio(**context):
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
     from datetime import datetime
 
+    execution_date = context["ds"]
     dt = datetime.strptime(execution_date, "%Y-%m-%d")
 
     year = dt.strftime("%Y")
@@ -13,7 +14,7 @@ def build_gold_coin_daily_minio(**context):
     
     logging.info("Building GOLD layer (coin daily metrics)")
 
-    execution_date = context["ds"]
+   
     bucket = "crypto-lake"
 
     silver_key = (
@@ -28,6 +29,9 @@ def build_gold_coin_daily_minio(**context):
     # 1️⃣ Read Silver Parquet
     silver_obj = s3.get_key(silver_key, bucket_name=bucket)
     df = pd.read_parquet(BytesIO(silver_obj.get()["Body"].read()))
+
+    if df.empty:
+        raise ValueError("Gold aggregation cannot run on empty dataset")
 
     # 2️⃣ Aggregate (Gold logic)
     gold_df = (

@@ -68,6 +68,15 @@ from utils.config_loader import load_config
 from utils.logger import get_logger
 from utils.s3_utils import get_s3_client
 
+from datetime import datetime
+
+dt = datetime.strptime(execution_date, "%Y-%m-%d")
+
+year = dt.strftime("%Y")
+month = dt.strftime("%m")
+day = dt.strftime("%d")
+
+
 config = load_config()
 logger = get_logger(__name__)
 
@@ -81,7 +90,7 @@ def load_gold_to_postgres(execution_date):
 
     bucket = config["data_lake_bucket"]
 
-    gold_key = f"gold/coins/dt={execution_date}/coin_daily_metrics.parquet"
+    gold_key = f"gold/coins/year={year}/month={month}/day={day}/coin_daily_metrics.parquet"
 
     logger.info(f"Reading gold dataset from: {gold_key}")
 
@@ -90,9 +99,10 @@ def load_gold_to_postgres(execution_date):
     obj = s3.get_object(Bucket=bucket, Key=gold_key)
 
     df = pd.read_parquet(BytesIO(obj["Body"].read()))
+    
 
     if df.empty:
-        raise ValueError("Gold dataset is empty")
+        raise ValueError("Gold dataset is empty - No data available for warehouse load")
 
     logger.info(f"Loaded dataframe with {len(df)} rows")
 
@@ -120,5 +130,7 @@ def load_gold_to_postgres(execution_date):
         ],
         records=records,
     )
+    if len(records) == 0:
+         raise ValueError("No records generated for insertion")
 
     logger.info("Warehouse load completed successfully")

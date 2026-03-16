@@ -4,11 +4,13 @@ import requests
 import pandas as pd
 import io
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from utils.retry_utils import retry
 
 config = load_config()
 logger = get_logger(__name__)
 
 
+@retry(max_attempts=3, delay_seconds=5)
 def extract_data():
 
     url = "https://api.coingecko.com/api/v3/coins/markets"

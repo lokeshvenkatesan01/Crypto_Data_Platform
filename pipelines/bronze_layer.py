@@ -1,3 +1,12 @@
+from datetime import datetime
+
+dt = datetime.strptime(ds, "%Y-%m-%d")
+
+year = dt.strftime("%Y")
+month = dt.strftime("%m")
+day = dt.strftime("%d")
+
+
 def upload_raw_to_s3(**context):
     logging.info("Uploading RAW data to MinIO (Bronze layer)")
 
@@ -7,7 +16,8 @@ def upload_raw_to_s3(**context):
     df = pd.read_csv(local_path)
     records = df.to_dict(orient="records")
 
-    s3_key = f"bronze/coins/dt={ds}/coin_raw.json"
+    s3_key = f"bronze/coins/year={year}/month={month}/day={day}/coin_raw.json"
+
 
     s3 = S3Hook(aws_conn_id="minio_s3")
 
