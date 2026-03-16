@@ -3,14 +3,23 @@ def build_gold_coin_daily_minio(**context):
     from io import BytesIO
     import pandas as pd
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+    from datetime import datetime
 
+    dt = datetime.strptime(execution_date, "%Y-%m-%d")
+
+    year = dt.strftime("%Y")
+    month = dt.strftime("%m")
+    day = dt.strftime("%d")
+    
     logging.info("Building GOLD layer (coin daily metrics)")
 
     execution_date = context["ds"]
     bucket = "crypto-lake"
 
-    silver_key = f"silver/coins/dt={execution_date}/coin_clean.parquet"
-    gold_key = f"gold/coins_daily/dt={execution_date}/coin_daily_metrics.parquet"
+    silver_key = (
+        f"silver/coins/year={year}/month={month}/day={day}/coin_clean.parquet"
+    )
+    gold_key = f"gold/coins_daily/year={year}/month={month}/day={day}/coin_daily_metrics.parquet"
 
     s3 = S3Hook(aws_conn_id="minio_s3")
     

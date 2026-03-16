@@ -16,6 +16,18 @@ def transform_bronze_to_silver(**context):
     import pyarrow as pa
     import pyarrow.parquet as pq
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+    
+    from datetime import datetime
+
+    dt = datetime.strptime(execution_date, "%Y-%m-%d")
+
+    year = dt.strftime("%Y")
+    month = dt.strftime("%m")
+    day = dt.strftime("%d")
+
+    silver_key = (
+        f"silver/coins/year={year}/month={month}/day={day}/coin_clean.parquet"
+    )
 
     logging.info("Starting Bronze ➜ Silver transformation (atomic)")
 
@@ -24,7 +36,7 @@ def transform_bronze_to_silver(**context):
     execution_date = context["ds"]
     bucket = "crypto-lake"
 
-    bronze_key = f"bronze/coins/dt={execution_date}/coin_raw.json"
+    bronze_key = f"bronze/coins/year={year}/month={month}/day={day}/coin_raw.json"
     tmp_silver_key = f"silver/coins/_tmp_dt={execution_date}/coin_clean.parquet"
     final_silver_key = f"silver/coins/dt={execution_date}/coin_clean.parquet"
 
@@ -108,7 +120,7 @@ def transform_bronze_to_silver(**context):
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    metadata_key = f"silver/coins/dt={execution_date}/_metadata.json"
+    metadata_key = f"silver/coins/year={year}/month={month}/day={day}/_metadata.json"
 
     s3.load_string(
         string_data=json.dumps(metadata, indent=2),
