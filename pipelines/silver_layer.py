@@ -1,5 +1,10 @@
 from utils.config_loader import load_config
 from utils.logger import get_logger
+from utils.validation_utils import (
+    validate_not_empty,
+    validate_no_nulls,
+    validate_positive_values,
+)
 
 config = load_config()
 logger = get_logger(__name__)
@@ -26,6 +31,12 @@ def transform_bronze_to_silver(**context):
     # 1️⃣ Read Bronze
     raw_json = s3.read_key(key=bronze_key, bucket_name=bucket)
     df = pd.read_json(io.StringIO(raw_json))
+    
+    validate_not_empty(df, "silver_coins")
+
+    validate_no_nulls(df, ["coin_id", "price_usd", "market_cap"])
+
+    validate_positive_values(df, ["price_usd", "market_cap"])
 
     # 2️⃣ Transform
     df = df[
