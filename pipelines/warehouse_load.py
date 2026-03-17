@@ -67,6 +67,7 @@ from utils.db_utils import bulk_insert
 from utils.config_loader import load_config
 from utils.logger import get_logger
 from utils.s3_utils import get_s3_client
+from utils.retry_utils import retry
 
 from datetime import datetime
 
@@ -81,13 +82,14 @@ config = load_config()
 logger = get_logger(__name__)
 
 
+@retry(max_attempts=3, delay_seconds=3)
 def load_gold_to_postgres(execution_date):
     """
     Load GOLD dataset from S3/MinIO into PostgreSQL warehouse.
     """
 
     logger.info("Starting warehouse load process")
-
+    logger.info(f"Loading GOLD data into warehouse for execution_date={execution_date}")
     bucket = config["data_lake_bucket"]
 
     gold_key = f"gold/coins/year={year}/month={month}/day={day}/coin_daily_metrics.parquet"

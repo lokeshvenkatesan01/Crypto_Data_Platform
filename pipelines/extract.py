@@ -22,6 +22,9 @@ def extract_data():
     response.raise_for_status()
 
     df = pd.DataFrame(response.json())
+    
+    if df.empty:
+        raise ValueError("Extracted dataset is empty")
 
     csv_buffer = io.StringIO()
     df.to_csv(csv_buffer, index=False)

@@ -1,6 +1,7 @@
 from utils.config_loader import load_config
 from utils.logger import get_logger
 from datetime import datetime, timezone
+from utils.retry_utils import retry
 from utils.validation_utils import (
     validate_not_empty,
     validate_no_nulls,
@@ -10,6 +11,7 @@ from utils.validation_utils import (
 config = load_config()
 logger = get_logger(__name__)
 
+@retry(max_attempts=3, delay_seconds=3)
 def transform_bronze_to_silver(**context):
     import logging
     import io
@@ -32,6 +34,7 @@ def transform_bronze_to_silver(**context):
     )
 
     logging.info("Starting Bronze ➜ Silver transformation (atomic)")
+    logger.info(f"Starting Silver transformation for execution_date={execution_date}")
 
     s3 = S3Hook(aws_conn_id="minio_s3")
 
