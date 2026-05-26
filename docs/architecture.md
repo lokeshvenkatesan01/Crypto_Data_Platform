@@ -1,5 +1,31 @@
 # Crypto Data Platform Architecture
 
+# Architecture Diagram
+
+CoinGecko API
+      ↓
+Airflow DAG
+      ↓
+Bronze Layer (JSON)
+      ↓
+Silver Layer (Parquet + Validation)
+      ↓
+Gold Layer (Aggregations)
+      ↓
+PostgreSQL Warehouse
+
+## Engineering Decisions
+
+### Why Parquet?
+Parquet provides columnar storage optimized for analytics workloads.
+
+### Why partitioning?
+Partitioning reduces query scan cost and improves performance.
+
+### Why Bronze/Silver/Gold?
+Separates raw ingestion from cleaned and business-ready data.
+
+
 This project implements a **layered data engineering pipeline** using Airflow, Python, MinIO (S3 compatible storage), and PostgreSQL.
 
 The architecture follows the **Medallion Architecture pattern**:
