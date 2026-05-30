@@ -3,7 +3,8 @@ from utils.config_loader import load_config
 import requests
 import pandas as pd
 import io
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+# from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from utils.s3_utils import get_s3_client
 from utils.retry_utils import retry
 
 config = load_config()
@@ -29,15 +30,25 @@ def extract_data():
     csv_buffer = io.StringIO()
     df.to_csv(csv_buffer, index=False)
 
-    s3_hook = S3Hook(aws_conn_id="minio_s3")
+    # s3_hook = S3Hook(aws_conn_id="minio_s3")
 
+    # bucket = config["data_lake_bucket"]
+
+    # s3_hook.load_string(
+    #     string_data=csv_buffer.getvalue(),
+    #     key="raw/coin_raw.csv",
+    #     bucket_name=bucket,
+    #     replace=True,
+    # )
+    
     bucket = config["data_lake_bucket"]
 
-    s3_hook.load_string(
-        string_data=csv_buffer.getvalue(),
-        key="raw/coin_raw.csv",
-        bucket_name=bucket,
-        replace=True,
+    s3 = get_s3_client()
+
+    s3.put_object(
+        Bucket=bucket,
+        Key="raw/coin_raw.csv",
+        Body=csv_buffer.getvalue(),
     )
 
     logger.info("Raw data uploaded to S3")

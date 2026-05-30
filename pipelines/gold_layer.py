@@ -1,40 +1,79 @@
+from io import BytesIO
+from datetime import datetime
+
+import pandas as pd
+
+from utils.logger import get_logger
+from utils.s3_utils import get_s3_client
+
+
+logger = get_logger(__name__)
+
+
 def build_gold_coin_daily_minio(**context):
-    import logging
-    from io import BytesIO
-    from utils.logger import get_logger
-    import pandas as pd
-    from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-    from datetime import datetime
-    logger = get_logger(__name__)
+    """
+    Build Gold layer daily coin metrics from Silver dataset.
+    """
+
     execution_date = context["ds"]
+
     dt = datetime.strptime(execution_date, "%Y-%m-%d")
-    
+
     year = dt.strftime("%Y")
     month = dt.strftime("%m")
     day = dt.strftime("%d")
-    
-    logging.info("Building GOLD layer (coin daily metrics)")
-    logger.info(f"Building GOLD layer for execution_date={execution_date}")
-   
+
+    logger.info("Building GOLD layer (coin daily metrics)")
+    logger.info(
+        f"Building GOLD layer for execution_date={execution_date}"
+    )
+
     bucket = "crypto-lake"
 
+    # Silver path (must match silver_layer.py)
     silver_key = (
-        f"silver/coins/year={year}/month={month}/day={day}/coin_clean.parquet"
+        f"silver/coins/dt={execution_date}/coin_clean.parquet"
     )
-    gold_key = f"gold/coins_daily/year={year}/month={month}/day={day}/coin_daily_metrics.parquet"
 
-    s3 = S3Hook(aws_conn_id="minio_s3")
-    
-    
+    # Gold path
+    gold_key = (
+        f"gold/coins_daily/year={year}/month={month}/day={day}/coin_daily_metrics.parquet"
+    )
 
-    # 1️⃣ Read Silver Parquet
-    silver_obj = s3.get_key(silver_key, bucket_name=bucket)
-    df = pd.read_parquet(BytesIO(silver_obj.get()["Body"].read()))
+    s3 = get_s3_client()
+
+    # --------------------------------------------------
+    # Read Silver Dataset
+    # --------------------------------------------------
+
+    logger.info(
+        f"Reading Silver dataset from {silver_key}"
+    )
+
+    obj = s3.get_object(
+        Bucket=bucket,
+        Key=silver_key
+    )
+
+    df = pd.read_parquet(
+        BytesIO(
+            obj["Body"].read()
+        )
+    )
 
     if df.empty:
-        raise ValueError("Gold aggregation cannot run on empty dataset")
+        raise ValueError(
+            "Gold aggregation cannot run on empty dataset"
+        )
 
-    # 2️⃣ Aggregate (Gold logic)
+    logger.info(
+        f"Silver dataset row count: {len(df)}"
+    )
+
+    # --------------------------------------------------
+    # Build Gold Aggregates
+    # --------------------------------------------------
+
     gold_df = (
         df.groupby("coin_id")
         .agg(
@@ -46,20 +85,35 @@ def build_gold_coin_daily_minio(**context):
         .reset_index()
     )
 
-    # 3️⃣ Add business date
     gold_df["dt"] = execution_date
 
-    # 4️⃣ Write Gold Parquet (idempotent overwrite)
-    buffer = BytesIO()
-    gold_df.to_parquet(buffer, index=False)
-    buffer.seek(0)
-
-    s3.load_file_obj(
-        buffer,
-        key=gold_key,
-        bucket_name=bucket,
-        replace=True,
+    logger.info(
+        f"Gold dataset row count: {len(gold_df)}"
     )
 
-    logging.info(f"GOLD dataset written to s3://{bucket}/{gold_key}")
+    # --------------------------------------------------
+    # Write Gold Dataset
+    # --------------------------------------------------
 
+    buffer = BytesIO()
+
+    gold_df.to_parquet(
+        buffer,
+        index=False
+    )
+
+    buffer.seek(0)
+
+    s3.put_object(
+        Bucket=bucket,
+        Key=gold_key,
+        Body=buffer.getvalue()
+    )
+
+    logger.info(
+        f"GOLD dataset written to s3://{bucket}/{gold_key}"
+    )
+
+    logger.info(
+        "Gold layer build completed successfully"
+    )

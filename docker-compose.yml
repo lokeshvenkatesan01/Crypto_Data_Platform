@@ -1,0 +1,47 @@
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: postgres_warehouse
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    ports:
+      - "5432:5432"
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  airflow:
+    build: .
+    container_name: airflow
+
+    depends_on:
+      - postgres
+      - minio
+
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      PYTHONPATH: "/opt/airflow"
+
+    ports:
+      - "8080:8080"
+
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./pipelines:/opt/airflow/pipelines
+      - ./utils:/opt/airflow/utils
+      - ./configs:/opt/airflow/configs
+
+    command: standalone
+
+version: '3'      

@@ -1,0 +1,7 @@
+pandas
+pyarrow
+psycopg2-binary
+apache-airflow
+boto3
+requests
+PyYAML

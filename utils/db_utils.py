@@ -89,6 +89,18 @@ def create_tables():
             timestamp TIMESTAMP
         );
     """)
+    
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS gold_coin_daily_metrics (
+            dt DATE,
+            coin_id TEXT,
+            avg_price_usd NUMERIC,
+            min_price_usd NUMERIC,
+            max_price_usd NUMERIC,
+            avg_market_cap NUMERIC,
+            PRIMARY KEY (dt, coin_id)
+        );
+    """)
 
     conn.commit()
 
